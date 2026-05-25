@@ -1,61 +1,84 @@
 import 'product_model.dart';
 
-class CartItem {
+// ── 1. MODEL UNTUK DETAIL ITEM KERANJANG ──
+class TransactionItemModel {
+  final String? id;
   final ProductModel product;
-  int quantity;
+  final int quantity;
+  final double price;
 
-  CartItem({required this.product, this.quantity = 1});
+  TransactionItemModel({
+    this.id,
+    required this.product,
+    required this.quantity,
+    required this.price,
+  });
 
-  double get total => product.price * quantity;
+  // Ganti fromMap menjadi fromJson agar cocok dengan Supabase
+  factory TransactionItemModel.fromJson(Map<String, dynamic> json) {
+    return TransactionItemModel(
+      id: json['id']?.toString(),
+      // Supabase mengembalikan relasi tabel products di dalam key 'products'
+      product: ProductModel.fromJson(json['products'] ?? {}),
+      quantity: json['quantity'] as int? ?? 1,
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      // id biasanya dikosongkan saat insert
+      'quantity': quantity,
+      'price': price,
+      // product_id diurus di service saat insert
+    };
+  }
 }
 
+// ── 2. MODEL UNTUK STRUK UTAMA ──
 class TransactionModel {
   final String id;
-  final List<CartItem> items;
+  final List<TransactionItemModel> items;
   final double totalAmount;
-  final DateTime date;
-  final String paymentMethod;
-  final String status;
+  final DateTime? date;
+  final String? cashierEmail;
+  final String? paymentMethod; // Tambahkan jika ada
+  final String? status; // Tambahkan jika ada
 
   TransactionModel({
     required this.id,
     required this.items,
     required this.totalAmount,
-    required this.date,
-    required this.paymentMethod,
-    required this.status,
+    this.date,
+    this.cashierEmail,
+    this.paymentMethod,
+    this.status,
   });
 
-  factory TransactionModel.fromMap(Map<String, dynamic> map) {
-    // Parse items dari relasi transaction_items
-    List<CartItem> items = [];
-    final rawItems = map['transaction_items'];
-    if (rawItems != null && rawItems is List && rawItems.isNotEmpty) {
-      for (final item in rawItems) {
-        final product = ProductModel(
-          id: item['product_id']?.toString() ?? '',
-          name: item['product_name']?.toString() ?? '-',
-          category: '',
-          price: (item['price'] as num?)?.toDouble() ?? 0,
-          stock: 0,
-          imageUrl: '',
-        );
-        items.add(CartItem(
-          product: product,
-          quantity: (item['quantity'] as num?)?.toInt() ?? 1,
-        ));
-      }
-    }
+  factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    // Menangkap array transaction_items dari Supabase
+    var itemsList = json['transaction_items'] as List? ?? [];
+    List<TransactionItemModel> parsedItems = 
+        itemsList.map((i) => TransactionItemModel.fromJson(i)).toList();
 
     return TransactionModel(
-      id: map['id']?.toString() ?? '',
-      items: items,
-      totalAmount: (map['total_amount'] as num?)?.toDouble() ?? 0,
-      date: map['created_at'] != null
-          ? DateTime.parse(map['created_at'].toString())
-          : DateTime.now(),
-      paymentMethod: map['payment_method']?.toString() ?? 'Tunai',
-      status: map['status']?.toString() ?? 'Selesai',
+      id: json['id'].toString(),
+      items: parsedItems,
+      totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0, 
+      date: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      cashierEmail: json['cashier_email'],
+      paymentMethod: json['payment_method'] ?? 'Tunai', // Sesuaikan defaultnya
+      status: json['status'] ?? 'Completed',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      // id dikosongkan karena auto-generate UUID
+      'total_amount': totalAmount,
+      'cashier_email': cashierEmail,
+      'payment_method': paymentMethod,
+      'status': status,
+    };
   }
 }

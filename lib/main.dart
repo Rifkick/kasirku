@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // [TAMBAHAN WAJIB]
 
 // ── CORE & SERVICES ───────────────────────────────────────────
 import 'core/constants.dart';
@@ -20,7 +21,7 @@ import 'screens/expense_screen.dart';
 import 'screens/admin/pnl_screen.dart';
 import 'screens/admin/user_management_screen.dart';
 import 'screens/admin/hpp_calculator_screen.dart';
-import 'screens/admin/admin_product_screen.dart'; // [TAMBAHAN] Layar Stok Admin
+import 'screens/admin/admin_product_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +29,14 @@ void main() async {
   // Inisialisasi locale Indonesia untuk format tanggal
   await initializeDateFormatting('id_ID', null);
 
-  // Eksekusi data dummy saat aplikasi mulai
-  await SupabaseService.seedDummyData();
+  // [TAMBAHAN WAJIB] Inisialisasi Database Supabase Asli
+  // Ganti dengan URL dan Anon Key dari Project Settings > API di Supabase Anda
+  await Supabase.initialize(
+    url: 'URL_SUPABASE_ANDA', 
+    anonKey: 'ANON_KEY_ANDA',
+  );
+
+  // (BARIS DUMMY DATA DIHAPUS KARENA SUDAH MENGGUNAKAN DATABASE ASLI)
 
   runApp(const KasirKuApp());
 }
@@ -61,7 +68,7 @@ class KasirKuApp extends StatelessWidget {
         '/admin/pnl': (_) => const PnLScreen(),
         '/admin/users': (_) => const UserManagementScreen(),
         '/admin/hpp': (_) => const HppCalculatorScreen(),
-        '/admin/products': (_) => const AdminProductScreen(), // [TAMBAHAN] Rute Stok Admin
+        '/admin/products': (_) => const AdminProductScreen(), 
       },
     );
   }
